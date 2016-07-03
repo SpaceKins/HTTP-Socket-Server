@@ -23,7 +23,6 @@ var net = require('net');
 
 var host;
 var uri;
-var port = 80;
 
 var responseHeaders;
 var statusLine;
@@ -31,6 +30,25 @@ var statusLine;
 var moreQuestions = true;
 
 var args = process.argv;
+//console.log(args);
+
+//var thisPort = 6969; //80
+//var thisHost = "localhost"; //"localhost"; //"www.google.com";
+
+/*
+var requestHeader = requestData.RequestGetHeader(thisHost, "HEAD");
+console.log(requestHeader);
+*/
+
+var initialQuestions = {
+    "Which source do you want": "",
+    "Method Type": ""
+    //   ,"Display Headers?(y/n)": ""
+    //   ,"Which Port To use?": ""
+};
+var lastQuestionKey = "";
+//thisHost="www.devleague.com";
+
 
 var stdInProcess = process.stdin;
 stdInProcess.setEncoding('utf-8');
@@ -41,38 +59,49 @@ stdOutProcess.setEncoding('utf-8');
 var client;
 
 
-/**
- * Process Arguments
- * if no arguments display
- */
-if (verifySetArguments()) {
-    if (host == 'localhost') {
-        port = 6969;
-    }
-
-    setConnection(port, host);
-
-}
-
 
 
 
 
 stdInProcess.on('data', function(dataIn) {
+    initialQuestions[lastQuestionKey] = dataIn.substring(0, dataIn.length - 1);
     console.log(dataIn);
-    //        console.log('wrote to server');
-    //     });
-
+    console.log('More Questio =' + moreQuestions);
+    if (moreQuestions) {
+        goThroughQuestions();
+    }
+    else
+    {
+      client.write('test',function(){
+        console.log('wrote to server');
+      });
+    }
 });
 
+//goThroughQuestions();
 
+
+
+/* = net.createConnection({
+    port: thisPort,
+    host: thisHost
+}, function(responseData) {
+    // startSession();
+    // 
+    // 
+
+})
+*/
 
 function setConnection(thisPort, thisHost) {
     client = net.createConnection({
         port: thisPort,
         host: thisHost
     }, function(responseData) {
-        console.log('connetect');
+        // startSession();
+        // 
+        // 
+
     })
 
 
@@ -81,14 +110,19 @@ function setConnection(thisPort, thisHost) {
     client.on('data', function(responseData) {
         console.log('****** Data ******** \n\n' + responseData.toString());
 
+
         responseHash = setResponseHash(responseData.toString());
 
+        //console.log(responseHash);
+        //
+
+        client.on('error', function(err) {
+            console.log(err);
+        });
 
     });
 
-    client.on('error', function(err) {
-        console.log(err);
-    });
+
 }
 
 
@@ -98,7 +132,35 @@ function sendRequest(requestDataToSend) {
     })
 }
 
+/*
+client.write(requestHeader, function() {
+    console.log('wrote');
+})
+*/
+/*
+client.on('connect',function(data){
+  console.log('in Connect' + data);
+})
+*/
 
+
+
+
+
+
+/**
+ * Process Arguments
+ * if no arguments display
+ */
+verifySetArguments();
+
+
+
+function startSession() {
+    console.log('Connected');
+
+    //  goThroughQuestions();
+}
 
 function verifySetArguments() {
     if (args.length != 3) {
@@ -147,3 +209,38 @@ function setResponseHash(hashThis) {
 
     return returnHash;
 };
+
+
+
+function goThroughQuestions() {
+    if (moreQuestions) {
+      //  console.log(initialQuestions);
+        var thesekeys = Object.keys(initialQuestions);
+
+        console.log(thesekeys);
+
+        for (var i = 0; i < thesekeys.length; i++) {
+            if (initialQuestions[thesekeys[i]] == "") {
+
+                lastQuestionKey = thesekeys[i];
+              //  console.log('last key =' + lastQuestionKey);
+
+                stdOutProcess.write(thesekeys[i] + "?\n");
+                // moreQuestions=true;
+                return false;
+            }
+        }
+
+        console.log('No more initial Questions');
+        var testRequestHeader = requestData.RequestGetHeader(initialQuestions['Which source do you want'], initialQuestions['Method Type']);
+        console.log(testRequestHeader);
+
+        //setConnection(80, 'google.com');
+        setConnection(6969, 'localhost');
+        sendRequest(testRequestHeader);
+
+        moreQuestions = false;
+    }
+    moreQuestions = false;
+    return true;
+}
